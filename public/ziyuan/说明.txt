@@ -1,0 +1,32 @@
+你的项目技术栈：
+Vite + Three.js（WebGL渲染器）+ 原生JS，无React，无Vue。桌面端优先，Chrome/Edge。
+
+给新对话的prompt模板，直接复制：
+
+我在做一个塔罗占卜应用，技术栈是Vite + Three.js + 原生JS，无任何框架。
+我需要你帮我写一个Canvas契约页面的绘制函数，用于贴到Three.js的CanvasTexture上作为塔罗牌的正面材质。
+规格：
+
+Canvas尺寸：512 x 820px
+导出为THREE.CanvasTexture
+有三种类型：login / register / guest，各自字段不同
+
+素材：
+
+底图：/tarot_assets/cards/contract_bg.jpg（我自己设计的羊皮纸底图，512x820px）
+字体：Cinzel、Cormorant Garamond italic、ZCOOL XiaoWei（Google Fonts已加载）
+
+三种类型的字段坐标（y值是我在Figma里测量的）：
+（你在这里填上你从Figma量出来的坐标）
+交互需求：
+
+用户点击字段区域激活输入，有金色细线下划线
+打字时实时重绘Canvas更新纹理
+光标每500ms闪烁
+密码字段显示•号
+性别选择用点击切换（♀/♂）
+提交区域点击后触发回调函数
+
+风格要求：
+维多利亚神秘学，深色背景，金色细线，衬线字体，像古老契约文书，不要现代感。
+请只写_redrawCanvas(type, ctx, state, activeField)这一个函数，以及配套的常量配置，不要写Three.js的其他部分，我自己接入。

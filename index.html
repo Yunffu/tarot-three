@@ -1,0 +1,319 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>tarot-three</title>
+    <style>
+      @font-face {
+        font-family: 'Cinzel';
+        src: url('/fonts/Cinzel-Regular.woff2') format('woff2');
+        font-weight: 400;
+        font-style: normal;
+        font-display: swap;
+      }
+      @font-face {
+        font-family: 'Cinzel';
+        src: url('/fonts/Cinzel-500.woff2') format('woff2');
+        font-weight: 500;
+        font-style: normal;
+        font-display: swap;
+      }
+      @font-face {
+        font-family: 'Cinzel';
+        src: url('/fonts/Cinzel-600.woff2') format('woff2');
+        font-weight: 600;
+        font-style: normal;
+        font-display: swap;
+      }
+      @font-face {
+        font-family: 'Cinzel';
+        src: url('/fonts/Cinzel-700.woff2') format('woff2');
+        font-weight: 700;
+        font-style: normal;
+        font-display: swap;
+      }
+      @font-face {
+        font-family: 'Almendra SC';
+        src: url('/fonts/AlmendraSC-Regular.woff2') format('woff2');
+        font-weight: 400;
+        font-style: normal;
+        font-display: swap;
+      }
+      @font-face {
+        font-family: 'ZCOOL XiaoWei';
+        src: url('/fonts/ZCOOLXiaoWei-Regular.woff2') format('woff2');
+        font-weight: 400;
+        font-style: normal;
+        font-display: swap;
+      }
+      @font-face {
+        font-family: 'Cormorant Garamond';
+        src: url('/fonts/CormorantGaramond-Italic.woff2') format('woff2');
+        font-weight: 400;
+        font-style: italic;
+        font-display: swap;
+      }
+
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body { overflow: hidden; background: #080604; }
+
+      /* 表单叠加层 */
+      #login-form-overlay {
+        position: fixed; inset: 0; z-index: 40;
+        display: none; /* login.js控制显示 */
+        align-items: center; justify-content: center;
+        opacity: 0;
+        transition: opacity 0.8s ease;
+        pointer-events: none;
+      }
+      #login-form-overlay.on { pointer-events: auto; }
+
+      /* 单个表单面板 */
+      .login-form-panel {
+        display: none;
+        flex-direction: column;
+        align-items: center;
+        gap: 14px;
+        width: 220px;
+        padding: 28px 20px;
+        background: rgba(8,6,4,0.6);
+        border: 0.5px solid rgba(168,145,106,0.2);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+      }
+
+      .form-title {
+        font-family: 'Cinzel', serif;
+        font-size: 10px;
+        letter-spacing: 0.3em;
+        color: #a8916a;
+        text-transform: uppercase;
+        margin-bottom: 4px;
+      }
+
+      .form-input {
+        width: 100%;
+        background: transparent;
+        border: none;
+        border-bottom: 0.5px solid rgba(168,145,106,0.25);
+        padding: 8px 0;
+        color: #e8dcc8;
+        font-family: 'Cormorant Garamond', serif;
+        font-style: italic;
+        font-size: 14px;
+        letter-spacing: 0.05em;
+        outline: none;
+        text-align: center;
+        transition: border-color 0.3s ease;
+      }
+      .form-input::placeholder {
+        color: rgba(232,220,200,0.2);
+        font-size: 13px;
+      }
+      .form-input:focus { border-bottom-color: rgba(168,145,106,0.6); }
+
+      .form-divider {
+        width: 40px; height: 0.5px;
+        background: linear-gradient(90deg, transparent, rgba(168,145,106,0.3), transparent);
+      }
+
+      /* 性别选择 */
+      .gender-row { display: flex; gap: 20px; justify-content: center; }
+      .gender-btn {
+        width: 36px; height: 36px; border-radius: 50%;
+        border: 0.5px solid rgba(168,145,106,0.2);
+        background: transparent;
+        color: rgba(168,145,106,0.5);
+        font-size: 16px; cursor: pointer;
+        display: flex; align-items: center; justify-content: center;
+        transition: all 0.3s ease;
+        font-family: serif;
+      }
+      .gender-btn:hover, .gender-btn.active {
+        border-color: rgba(168,145,106,0.7);
+        color: #a8916a;
+        background: rgba(168,145,106,0.08);
+      }
+
+      /* 提交按钮 */
+      .form-submit {
+        width: 100%; padding: 9px;
+        background: transparent;
+        border: 0.5px solid rgba(168,145,106,0.3);
+        color: #a8916a;
+        font-family: 'Cinzel', serif;
+        font-size: 10px; letter-spacing: 0.3em;
+        text-transform: uppercase;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        margin-top: 4px;
+      }
+      .form-submit:hover {
+        background: rgba(168,145,106,0.08);
+        border-color: rgba(168,145,106,0.6);
+      }
+
+      .form-note {
+        font-family: 'Cormorant Garamond', serif;
+        font-style: italic;
+        font-size: 11px;
+        color: rgba(232,220,200,0.2);
+        text-align: center; line-height: 1.6;
+        letter-spacing: 0.04em;
+      }
+
+      /* 燃烧Canvas */
+      #burn-canvas {
+        position: fixed; inset: 0; z-index: 60;
+        pointer-events: none; opacity: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app"></div>
+
+    <!-- 表单叠加层 -->
+    <div id="login-form-overlay">
+
+      <!-- 登录 -->
+      <div class="login-form-panel" id="form-login">
+        <span class="form-title">登录</span>
+        <div class="form-divider"></div>
+        <input class="form-input" type="text" placeholder="账号" autocomplete="off">
+        <input class="form-input" type="password" placeholder="密码" autocomplete="off">
+        <button class="form-submit" onclick="handleSubmit(event, 'login')">进入</button>
+      </div>
+
+      <!-- 注册 -->
+      <div class="login-form-panel" id="form-register">
+        <span class="form-title">注册</span>
+        <div class="form-divider"></div>
+        <input class="form-input" type="text" placeholder="你的名字" autocomplete="off">
+        <div class="gender-row">
+          <button class="gender-btn" onclick="selectGender(this)">♀</button>
+          <button class="gender-btn" onclick="selectGender(this)">♂</button>
+        </div>
+        <input class="form-input" type="text" placeholder="出生年份" maxlength="4" autocomplete="off">
+        <input class="form-input" type="password" placeholder="设置密码" autocomplete="off">
+        <button class="form-submit" onclick="handleSubmit(event, 'register')">立约</button>
+      </div>
+
+      <!-- 游客 -->
+      <div class="login-form-panel" id="form-guest">
+        <span class="form-title">今夜一问</span>
+        <div class="form-divider"></div>
+        <div class="gender-row">
+          <button class="gender-btn" onclick="selectGender(this)">♀</button>
+          <button class="gender-btn" onclick="selectGender(this)">♂</button>
+        </div>
+        <input class="form-input" type="text" placeholder="年龄" maxlength="3"
+          autocomplete="off" style="width:80px;">
+        <p class="form-note">今夜不留痕迹<br>每日一次</p>
+        <button class="form-submit" onclick="handleSubmit(event, 'guest')">进入</button>
+      </div>
+
+    </div>
+
+    <!-- 燃烧Canvas -->
+    <canvas id="burn-canvas"></canvas>
+
+    <script>
+      function selectGender(btn) {
+        const row = btn.closest('.gender-row');
+        row.querySelectorAll('.gender-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+      }
+
+      function handleSubmit(e, type) {
+        e.stopPropagation();
+        const rect = e.target.getBoundingClientRect();
+        const originX = rect.left + rect.width / 2;
+        const originY = rect.top + rect.height / 2;
+
+        // 隐藏表单
+        document.getElementById('login-form-overlay').style.opacity = '0';
+
+        // 触发燃烧
+        startBurn(originX, originY, () => {
+          // 燃烧完成 → 通知login.js
+          if (window.__loginModule) {
+            window.__loginModule.triggerBurnTransition(originX, originY);
+          }
+        });
+      }
+
+      function startBurn(ox, oy, onComplete) {
+        const canvas = document.getElementById('burn-canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        canvas.style.opacity = '1';
+
+        const maxR = Math.sqrt(
+          Math.pow(Math.max(ox, canvas.width - ox), 2) +
+          Math.pow(Math.max(oy, canvas.height - oy), 2)
+        ) * 1.1;
+
+        // 先填满黑色
+        ctx.fillStyle = 'rgba(0,0,0,1)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        let burnR = 0;
+        let frame = 0;
+
+        function draw() {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          burnR += (maxR - burnR) * 0.045 + 6;
+          frame++;
+
+          // 不规则烧穿边缘
+          ctx.beginPath();
+          const pts = 100;
+          for (let i = 0; i <= pts; i++) {
+            const angle = (i / pts) * Math.PI * 2;
+            const noise =
+              Math.sin(angle * 7 + frame * 0.14) * 20 +
+              Math.sin(angle * 13 - frame * 0.09) * 11 +
+              Math.sin(angle * 3 + frame * 0.06) * 28;
+            const r = Math.max(0, burnR + noise);
+            const x = ox + Math.cos(angle) * r;
+            const y = oy + Math.sin(angle) * r;
+            i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+          }
+          ctx.closePath();
+          ctx.globalCompositeOperation = 'destination-out';
+          ctx.fillStyle = 'rgba(0,0,0,1)';
+          ctx.fill();
+          ctx.globalCompositeOperation = 'source-over';
+
+          // 火焰边缘发光
+          const grad = ctx.createRadialGradient(ox, oy, Math.max(0, burnR-20), ox, oy, burnR+30);
+          grad.addColorStop(0, 'rgba(0,0,0,0)');
+          grad.addColorStop(0.65, 'rgba(160,70,10,0.0)');
+          grad.addColorStop(0.82, 'rgba(220,110,15,0.55)');
+          grad.addColorStop(0.92, 'rgba(255,170,30,0.75)');
+          grad.addColorStop(1, 'rgba(255,60,0,0.0)');
+          ctx.beginPath();
+          ctx.arc(ox, oy, burnR + 35, 0, Math.PI * 2);
+          ctx.fillStyle = grad;
+          ctx.fill();
+
+          if (burnR < maxR + 80) {
+            requestAnimationFrame(draw);
+          } else {
+            // 燃烧完成
+            canvas.style.transition = 'opacity 0.8s ease';
+            canvas.style.opacity = '0';
+            if (onComplete) onComplete();
+          }
+        }
+        draw();
+      }
+      window.startBurn = startBurn;
+    </script>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

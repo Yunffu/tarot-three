@@ -1,0 +1,45 @@
+#!/bin/sh
+# 提交前扫描暂存区里的密钥泄漏。
+# 启用: git config core.hooksPath .githooks
+#
+# 未安装 gitleaks 时跳过（不阻塞其他开发者的提交），
+# 安装: winget install gitleaks --source winget
+
+GITLEAKS=""
+if command -v gitleaks >/dev/null 2>&1; then
+  GITLEAKS="$(command -v gitleaks)"
+else
+  # 回退：查找 winget 便携安装目录
+  LOCAL_DIR="$LOCALAPPDATA"
+  if command -v cygpath >/dev/null 2>&1; then
+    LOCAL_DIR="$(cygpath -u "$LOCALAPPDATA" 2>/dev/null || echo "$LOCALAPPDATA")"
+  fi
+  for candidate in "$LOCAL_DIR"/Microsoft/WinGet/Packages/Gitleaks.Gitleaks_*/gitleaks.exe; do
+    if [ -f "$candidate" ]; then
+      GITLEAKS="$candidate"
+      break
+    fi
+  done
+fi
+
+if [ -z "$GITLEAKS" ]; then
+  echo "pre-commit: 未找到 gitleaks，跳过密钥扫描（安装: winget install gitleaks --source winget）"
+  exit 0
+fi
+
+# 配置存在时显式指定绝对路径，避免工作目录差异导致找不到文件
+CONFIG_ARGS=""
+if [ -f "$PWD/.gitleaks.toml" ]; then
+  CONFIG_ARGS="--config $PWD/.gitleaks.toml"
+fi
+
+echo "pre-commit: gitleaks 扫描暂存区..."
+# shellcheck disable=SC2086
+if ! "$GITLEAKS" git --staged --redact --no-banner $CONFIG_ARGS; then
+  echo ""
+  echo "pre-commit: 检测到疑似密钥，提交已中止。"
+  echo "  确认是误报后可用 'git commit --no-verify' 跳过。"
+  exit 1
+fi
+
+exit 0

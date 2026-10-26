@@ -1,0 +1,14 @@
+# gitleaks 配置
+# 文档: https://github.com/gitleaks/gitleaks
+
+[extend]
+useDefault = true
+
+[allowlist]
+# 依赖锁文件与构建产物里的长哈希容易被误判为密钥
+paths = [
+  '''(^|/)package-lock\.json$''',
+  '''(^|/)node_modules/''',
+  '''(^|/)dist/''',
+  '''(^|/)public/fonts/''',
+]

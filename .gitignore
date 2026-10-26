@@ -12,6 +12,17 @@ dist
 dist-ssr
 *.local
 
+# 环境变量与本地密钥（严禁提交）
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+id_rsa
+id_dsa
+id_ecdsa
+id_ed25519
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

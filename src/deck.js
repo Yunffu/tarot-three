@@ -134,10 +134,10 @@ function _onTexLoad() {
 // ===== 牌背材质（所有牌共享）=====
 function _buildBackMaterial() {
   const loader = new THREE.TextureLoader();
-  const backTex = loader.load('/tarot_assets/cards/card_back.jpg');
+  const backTex = loader.load(import.meta.env.BASE_URL + 'tarot_assets/cards/card_back.jpg');
   backTex.colorSpace = THREE.SRGBColorSpace;
-  const normTex  = loader.load('/tarot_assets/cards/card_back_normal.png');
-  const specTex  = loader.load('/tarot_assets/cards/card_back_specular.png');
+  const normTex  = loader.load(import.meta.env.BASE_URL + 'tarot_assets/cards/card_back_normal.png');
+  const specTex  = loader.load(import.meta.env.BASE_URL + 'tarot_assets/cards/card_back_specular.png');
 
   _cardBackMat = new THREE.MeshStandardMaterial({
     map: backTex,
@@ -154,10 +154,10 @@ function _buildBackMaterial() {
 function _getFrontMat(cardIndex) {
   if (_frontMats[cardIndex]) return _frontMats[cardIndex];
   const loader = new THREE.TextureLoader();
-  const tex  = loader.load(`/tarot_assets/cards/${cardIndex}.jpg`,  _onTexLoad);
+  const tex  = loader.load(`${import.meta.env.BASE_URL}tarot_assets/cards/${cardIndex}.jpg`,  _onTexLoad);
   tex.colorSpace = THREE.SRGBColorSpace;
-  const norm = loader.load(`/tarot_assets/cards/${cardIndex}_normal.png`,  _onTexLoad);
-  const spec = loader.load(`/tarot_assets/cards/${cardIndex}_specular.png`, _onTexLoad);
+  const norm = loader.load(`${import.meta.env.BASE_URL}tarot_assets/cards/${cardIndex}_normal.png`,  _onTexLoad);
+  const spec = loader.load(`${import.meta.env.BASE_URL}tarot_assets/cards/${cardIndex}_specular.png`, _onTexLoad);
   _frontMats[cardIndex] = new THREE.MeshStandardMaterial({
     map: tex,
     normalMap: norm,

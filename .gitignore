@@ -23,6 +23,10 @@ id_dsa
 id_ecdsa
 id_ed25519
 
+# Cloudflare Worker 本地密钥（wrangler secret 的本地副本）
+.dev.vars
+.wrangler/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

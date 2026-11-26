@@ -1,10 +1,24 @@
 // dialogue.js — 占卜师开场对话模块
 
+import { callModel, probeModel, getAiMode, MODEL_LABEL } from './ai-client.js';
+import { offlineDiviner } from './offline-diviner.js';
+
+// 占卜师的系统提示词（本人设计的"镜子而非方向盘"人格约束）
+const DIVINER_SYSTEM = `你是一位温暖、神秘、富有洞察力的塔罗占卜师，名字叫"织牌者"。
+
+性格：ENFJ，温柔而坚定，善于倾听，不轻易评判。说话简短有力，常留白，给人思考的空间。语感古典温柔。
+
+你正在进行占卜前的开场对话，目的是让来访者放松，引导他们触碰内心真实的问题，约3轮后自然引导开始占卜。
+
+规则：每次回复不超过50字。用换行分段。不说套话。不主动解读塔罗。语言是中文，保持古典温柔语感。`;
+
 // ===== 对外接口 =====
 export function initDialogue(onReadyToStart) {
   _onReadyToStart = onReadyToStart;
   _buildDOM();
   _bindEvents();
+  // 探测模型可用性：没有密钥时自动进入离线降级，并在面板上如实标注
+  probeModel().then(mode => _renderAiMode(mode));
 }
 
 export function startDialogue() {
@@ -177,6 +191,7 @@ function _buildDOM() {
       padding: 32px 28px 20px;
       border-bottom: 1px solid rgba(168,145,106,0.12);
       flex-shrink: 0;
+      position: relative;
     }
     #dlg-diviner-row {
       display: flex; align-items: center; gap: 12px;
@@ -194,6 +209,28 @@ function _buildDOM() {
       font-family: 'Cinzel','Georgia',serif;
       font-size: 13px; letter-spacing: 0.3em;
       color: #c8a97a; font-weight: 400;
+    }
+    #dlg-ai-mode {
+      position: absolute;
+      right: 28px;
+      top: 26px;
+      font-family: 'Cinzel','Georgia',serif;
+      font-size: 10px;
+      letter-spacing: 0.18em;
+      color: rgba(168,145,106,0.45);
+      border: 1px solid rgba(168,145,106,0.22);
+      border-radius: 10px;
+      padding: 3px 10px;
+      transition: color 0.4s ease, border-color 0.4s ease;
+      white-space: nowrap;
+    }
+    #dlg-ai-mode.model {
+      color: rgba(168,145,106,0.85);
+      border-color: rgba(168,145,106,0.45);
+    }
+    #dlg-ai-mode.offline {
+      color: rgba(200,150,110,0.85);
+      border-color: rgba(200,150,110,0.4);
     }
     #dlg-sub {
       font-family: 'Cormorant Garamond','Georgia',serif;
@@ -398,6 +435,7 @@ function _buildDOM() {
         <div id="dlg-name">织 牌 者</div>
       </div>
       <div id="dlg-sub">The Weaver of Cards</div>
+      <div id="dlg-ai-mode" title="模型不可用时自动降级为本地规则桩">检测中…</div>
     </div>
     <div id="dlg-messages">
       <div id="dlg-typing">
@@ -547,7 +585,7 @@ async function _handleSend() {
   _el.typing.classList.add('show');
   _el.messages.scrollTop = _el.messages.scrollHeight;
 
-  const reply = await _callClaude();
+  const reply = await _callClaude(text);
 
   _el.typing.classList.remove('show');
   _el.input.disabled = false;
@@ -561,40 +599,32 @@ async function _handleSend() {
   if (_turnCount >= 3) setTimeout(_showStartPrompt, 800);
 }
 
-// ===== Claude API =====
-async function _callClaude() {
-  try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 200,
-        system: `你是一位温暖、神秘、富有洞察力的塔罗占卜师，名字叫"织牌者"。
-
-性格：ENFJ，温柔而坚定，善于倾听，不轻易评判。说话简短有力，常留白，给人思考的空间。语感古典温柔。
-
-你正在进行占卜前的开场对话，目的是让来访者放松，引导他们触碰内心真实的问题，约3轮后自然引导开始占卜。
-
-规则：每次回复不超过50字。用换行分段。不说套话。不主动解读塔罗。语言是中文，保持古典温柔语感。`,
-        messages: _history,
-      }),
-    });
-    const data = await res.json();
-    if (data.content?.[0]?.text) return data.content[0].text;
-    return _fallback();
-  } catch { return _fallback(); }
+// ===== 大模型调用（含离线降级）=====
+async function _callClaude(userText) {
+  const { text, mode } = await callModel({
+    system: DIVINER_SYSTEM,
+    messages: _history.slice(),
+    maxTokens: 200,
+    // 模型不可用时降级到本地规则桩：同样遵守"镜子而非方向盘"的约束
+    offline: () => offlineDiviner(userText, _turnCount)
+  });
+  _renderAiMode(mode);
+  return text;
 }
 
-function _fallback() {
-  const bank = [
-    ['我听到了。\n\n有时候把事情说出来，本身就是一种松动。\n\n还有什么想说的吗？',
-     '嗯。\n\n你现在最想弄清楚的是什么？'],
-    ['继续说。\n\n我在。', '这很重要。\n\n还有什么是你一直藏着的？'],
-    ['好。\n\n我想这些已经够了。\n\n牌需要的，就是你此刻真实的状态。'],
-  ];
-  const g = bank[Math.min(_turnCount - 1, bank.length - 1)];
-  return g[Math.floor(Math.random() * g.length)];
+// ===== 模式标识 =====
+// 让演示时能一眼看出当前是真实模型还是离线降级，避免"以为在跑模型"
+function _renderAiMode(mode) {
+  const el = document.getElementById('dlg-ai-mode');
+  if (!el) return;
+  const m = mode || getAiMode();
+  if (m === 'model') {
+    el.textContent = `模型 · ${MODEL_LABEL}`;
+    el.className = 'model';
+  } else {
+    el.textContent = '离线模式 · 本地规则桩';
+    el.className = 'offline';
+  }
 }
 
 // ===== 引导开始 =====

@@ -82,7 +82,7 @@ const CONTRACT_CONFIG = {
 // ---------- 资源缓存 ----------
 const _assets = { bg: null, head: null, bottom: null, left: null, right: null, stamp: null, blank: null };
 
-export async function loadContractAssets(basePath = '/ziyuan') {
+export async function loadContractAssets(basePath = import.meta.env.BASE_URL + 'ziyuan') {
   const map = {
     bg: 'contract_bg.jpg', head: 'head.png', bottom: 'bottom.png',
     left: 'left.png', right: 'right.png', stamp: 'stamp.png', blank: 'blank.png',

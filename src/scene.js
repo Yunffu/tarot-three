@@ -10,7 +10,7 @@ export function initScene(renderer, camera) {
   const gltfLoader = new GLTFLoader();
 
   const rgbeLoader = new RGBELoader();
-  rgbeLoader.load('/hdr/ferndale_studio_08_1k.hdr', (hdrTexture) => {
+  rgbeLoader.load(import.meta.env.BASE_URL + 'hdr/ferndale_studio_08_1k.hdr', (hdrTexture) => {
     hdrTexture.mapping = THREE.EquirectangularReflectionMapping;
     scene.background = new THREE.Color(0x0f0c09);
     scene.environment = hdrTexture;
@@ -125,10 +125,10 @@ function createCardGeometry(width, height, depth, radius, segments) {
 function buildScene(scene, camera, renderer, gltfLoader) {
   console.log('buildCard开始执行');
   const loader = new THREE.TextureLoader();
-  const cardBackTexture = loader.load('/tarot_assets/cards/card_back.jpg');
+  const cardBackTexture = loader.load(import.meta.env.BASE_URL + 'tarot_assets/cards/card_back.jpg');
   cardBackTexture.colorSpace = THREE.SRGBColorSpace;
-  const normalTexture = loader.load('/tarot_assets/cards/card_back_normal.png');
-  const specularTexture = loader.load('/tarot_assets/cards/card_back_specular.png');
+  const normalTexture = loader.load(import.meta.env.BASE_URL + 'tarot_assets/cards/card_back_normal.png');
+  const specularTexture = loader.load(import.meta.env.BASE_URL + 'tarot_assets/cards/card_back_specular.png');
 
   const faceMaterial = new THREE.MeshStandardMaterial({
     map: cardBackTexture,
@@ -146,10 +146,10 @@ function buildScene(scene, camera, renderer, gltfLoader) {
     metalness: 0,
   });
 
-  const cardFrontTexture = loader.load('/tarot_assets/cards/0.jpg');
+  const cardFrontTexture = loader.load(import.meta.env.BASE_URL + 'tarot_assets/cards/0.jpg');
   cardFrontTexture.colorSpace = THREE.SRGBColorSpace;
-  const cardFrontNormal = loader.load('/tarot_assets/cards/0_normal.png');
-  const cardFrontSpecular = loader.load('/tarot_assets/cards/0_specular.png');
+  const cardFrontNormal = loader.load(import.meta.env.BASE_URL + 'tarot_assets/cards/0_normal.png');
+  const cardFrontSpecular = loader.load(import.meta.env.BASE_URL + 'tarot_assets/cards/0_specular.png');
 
   const backMaterial = new THREE.MeshStandardMaterial({
     map: cardFrontTexture,
@@ -162,7 +162,7 @@ function buildScene(scene, camera, renderer, gltfLoader) {
   });
 
   console.log('即将加载GLB');
-  gltfLoader.load('/models/lion_paw_table.glb', (gltf) => {
+  gltfLoader.load(import.meta.env.BASE_URL + 'models/lion_paw_table.glb', (gltf) => {
     const tableModel = gltf.scene;
     console.log('模型加载成功，子物体数量：', gltf.scene.children.length);
     const box = new THREE.Box3().setFromObject(tableModel);
@@ -183,9 +183,9 @@ function buildScene(scene, camera, renderer, gltfLoader) {
     });
     scene.add(tableModel);
 
-    const clothTexture = new THREE.TextureLoader().load('/tarot_assets/cloth/1.jpg');
+    const clothTexture = new THREE.TextureLoader().load(import.meta.env.BASE_URL + 'tarot_assets/cloth/1.jpg');
     clothTexture.colorSpace = THREE.SRGBColorSpace;
-    const clothNormalTex = new THREE.TextureLoader().load('/tarot_assets/cloth/cloth_normal.jpg');
+    const clothNormalTex = new THREE.TextureLoader().load(import.meta.env.BASE_URL + 'tarot_assets/cloth/cloth_normal.jpg');
     clothNormalTex.wrapS = clothNormalTex.wrapT = THREE.RepeatWrapping;
     clothNormalTex.repeat.set(2, 2);
     const clothMat = new THREE.MeshStandardMaterial({
@@ -198,7 +198,7 @@ function buildScene(scene, camera, renderer, gltfLoader) {
       side: THREE.DoubleSide,
     });
 
-    gltfLoader.load('/models/cloth.glb', (gltf) => {
+    gltfLoader.load(import.meta.env.BASE_URL + 'models/cloth.glb', (gltf) => {
       const clothModel = gltf.scene;
       const clothBox = new THREE.Box3().setFromObject(clothModel);
       const clothSize = clothBox.getSize(new THREE.Vector3());
@@ -212,7 +212,7 @@ function buildScene(scene, camera, renderer, gltfLoader) {
       clothModel.position.set(0, 0.8, 0);
       scene.add(clothModel);
 
-      gltfLoader.load('/models/candles.glb', (gltf) => {
+      gltfLoader.load(import.meta.env.BASE_URL + 'models/candles.glb', (gltf) => {
         const candlesModel = gltf.scene;
         const box = new THREE.Box3().setFromObject(candlesModel);
         const size = box.getSize(new THREE.Vector3());
@@ -243,7 +243,7 @@ function buildScene(scene, camera, renderer, gltfLoader) {
         scene.add(ambientLight);
       }, undefined, (error) => { console.error('蜡烛加载失败：', error); });
 
-      gltfLoader.load('/models/crystal_ball.glb', (gltf) => {
+      gltfLoader.load(import.meta.env.BASE_URL + 'models/crystal_ball.glb', (gltf) => {
         crystalModel = gltf.scene;
         const box = new THREE.Box3().setFromObject(crystalModel);
         const size = box.getSize(new THREE.Vector3());
@@ -260,7 +260,7 @@ function buildScene(scene, camera, renderer, gltfLoader) {
         scene.add(crystalModel);
       }, undefined, (error) => { console.error('水晶球加载失败：', error); });
 
-      gltfLoader.load('/models/book_open.glb', (gltf) => {
+      gltfLoader.load(import.meta.env.BASE_URL + 'models/book_open.glb', (gltf) => {
         const bookOpen = gltf.scene;
         const box = new THREE.Box3().setFromObject(bookOpen);
         const size = box.getSize(new THREE.Vector3());
@@ -271,7 +271,7 @@ function buildScene(scene, camera, renderer, gltfLoader) {
         scene.add(bookOpen);
       }, undefined, (error) => console.error('book_open加载失败：', error));
 
-      gltfLoader.load('/models/old_book_tarot.glb', (gltf) => {
+      gltfLoader.load(import.meta.env.BASE_URL + 'models/old_book_tarot.glb', (gltf) => {
         const bookTarot = gltf.scene;
         const box = new THREE.Box3().setFromObject(bookTarot);
         const size = box.getSize(new THREE.Vector3());
@@ -282,7 +282,7 @@ function buildScene(scene, camera, renderer, gltfLoader) {
         scene.add(bookTarot);
       }, undefined, (error) => console.error('old_book_tarot加载失败：', error));
 
-      gltfLoader.load('/models/crystals.glb', (gltf) => {
+      gltfLoader.load(import.meta.env.BASE_URL + 'models/crystals.glb', (gltf) => {
         crystals = gltf.scene;
         const box = new THREE.Box3().setFromObject(crystals);
         const size = box.getSize(new THREE.Vector3());
@@ -310,7 +310,7 @@ function buildScene(scene, camera, renderer, gltfLoader) {
         scene.add(crystals);
       }, undefined, (error) => console.error('水晶加载失败：', error));
 
-      gltfLoader.load('/models/hourglass.glb', (gltf) => {
+      gltfLoader.load(import.meta.env.BASE_URL + 'models/hourglass.glb', (gltf) => {
         const hourglass = gltf.scene;
         const box = new THREE.Box3().setFromObject(hourglass);
         const size = box.getSize(new THREE.Vector3());
@@ -326,7 +326,7 @@ function buildScene(scene, camera, renderer, gltfLoader) {
         scene.add(hourglass);
       }, undefined, (error) => console.error('沙漏加载失败：', error));
 
-      gltfLoader.load('/models/ink_bottle_with_quill.glb', (gltf) => {
+      gltfLoader.load(import.meta.env.BASE_URL + 'models/ink_bottle_with_quill.glb', (gltf) => {
         const quill = gltf.scene;
         const box = new THREE.Box3().setFromObject(quill);
         const size = box.getSize(new THREE.Vector3());

@@ -179,10 +179,10 @@ function _buildQuoteEl() {
 function _buildCards() {
   const geo = _createCardGeo(W, H, D, R, 8);
   const loader = new THREE.TextureLoader();
-  const backTex = loader.load('/tarot_assets/cards/card_back.jpg');
+  const backTex = loader.load(import.meta.env.BASE_URL + 'tarot_assets/cards/card_back.jpg');
   backTex.colorSpace = THREE.SRGBColorSpace;
-  const normTex = loader.load('/tarot_assets/cards/card_back_normal.png');
-  const specTex = loader.load('/tarot_assets/cards/card_back_specular.png');
+  const normTex = loader.load(import.meta.env.BASE_URL + 'tarot_assets/cards/card_back_normal.png');
+  const specTex = loader.load(import.meta.env.BASE_URL + 'tarot_assets/cards/card_back_specular.png');
 
   CARD_CONFIGS.forEach((cfg, i) => {
     const mkMat = () => new THREE.MeshStandardMaterial({
@@ -636,7 +636,7 @@ let _cursorTimer = null;
 
 // 预加载素材（在initLogin里调用）
 async function _loadContractAssets() {
-  await loadContractAssets('/ziyuan');
+  await loadContractAssets(import.meta.env.BASE_URL + 'ziyuan');
   await document.fonts.ready; // 等所有字体（本地woff2）加载完成
 }
 

@@ -1,7 +1,8 @@
 // significator.js — 象征牌选定模块
-// 流程：读取用户信息 → 尝试摄像头拍照 → Claude分析 → 展示结果
+// 流程：读取用户信息 → 尝试摄像头拍照 → 模型分析 → 展示结果
 
 import { TAROT_DB } from './tarot-db.js';
+import { callModel } from './ai-client.js';
 
 // ===== 对外接口 =====
 export function initSignificator() {
@@ -345,15 +346,17 @@ function _takeSelfie() {
   _stopCamera();
   _el.analyzing.classList.add('on');
 
-  _analyzeWithClaude(base64);
+  _analyzeWithModel(base64);
 }
 
 function _stopCamera() {
   if (_stream) { _stream.getTracks().forEach(t => t.stop()); _stream = null; }
 }
 
-// ===== Claude API分析 =====
-async function _analyzeWithClaude(base64) {
+// ===== 大模型分析 =====
+// 注意：当前模型（DeepSeek Chat）是纯文本模型，不接受图片输入，
+// 所以这条路径实际会降级到本地颜色特征分析（见 _analyzeLocally）。
+async function _analyzeWithModel(base64) {
   const { gender, age } = _inferFromUserInfo();
   const courtType = COURT_MAP[gender]?.[age] || 'King';
 
@@ -376,50 +379,111 @@ async function _analyzeWithClaude(base64) {
   "desc": "用一句话描述这张牌代表的气质（中文，25字以内，第二人称，如'你如水般流动，感知细腻'）"
 }`;
 
-  try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 200,
-        messages: [{
-          role: 'user',
-          content: [
-            { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: base64 } },
-            { type: 'text', text: prompt }
-          ]
-        }]
-      })
-    });
+  const { text, mode } = await callModel({
+    messages: [{ role: 'user', content: prompt }],
+    images: [{ media_type: 'image/jpeg', data: base64 }],
+    maxTokens: 200,
+    // 模型不可用时降级：改用本地图像特征分析（不是模型）
+    offline: () => ''
+  });
 
-    const data  = await res.json();
-    const text  = data.content?.[0]?.text || '{}';
-    const clean = text.replace(/```json|```/g, '').trim();
-    const result = JSON.parse(clean);
+  _el.analyzing.classList.remove('on');
+  _el.selfieView.classList.remove('on');
 
-    const cardName = `${courtType} of ${result.suit}`;
-    const card = TAROT_DB.find(c => c.en === cardName);
-
-    if (card) {
-      _saveProfile(card.id, result.desc, gender, age);
-      _el.analyzing.classList.remove('on');
-      _el.selfieView.classList.remove('on');
-      _showReveal(card, result.desc, true);
-    } else {
-      _el.analyzing.classList.remove('on');
-      _el.selfieView.classList.remove('on');
-      _fallbackToInfer();
+  if (mode === 'model') {
+    try {
+      const clean = String(text).replace(/```json|```/g, '').trim();
+      const result = JSON.parse(clean);
+      const card = TAROT_DB.find(c => c.en === `${courtType} of ${result.suit}`);
+      if (card) {
+        _saveProfile(card.id, result.desc, gender, age);
+        _showReveal(card, result.desc, true);
+        return;
+      }
+    } catch (e) {
+      console.warn('象征牌解析失败，改用本地图像特征分析', e);
     }
+  }
+
+  _analyzeLocally();
+}
+
+// ===== 降级一：本地图像特征分析（有照片、无模型）=====
+// 说明：这不是 AI，是确定性的颜色特征统计（中心区域平均色相/亮度/饱和度），
+// 目的是让"自拍 → 象征牌"这条链路在无密钥时依然完整可用。
+function _analyzeLocally() {
+  const { gender, age } = _inferFromUserInfo();
+  const courtType = COURT_MAP[gender]?.[age] || 'King';
+  const feat = _extractColorFeatures(_el.canvas);
+
+  let suit;
+  if (!feat) {
+    suit = 'Cups';
+  } else if (feat.hue < 45 || feat.hue >= 330) {
+    suit = 'Wands';
+  } else if (feat.hue < 100) {
+    suit = 'Pentacles';
+  } else if (feat.hue < 260) {
+    suit = 'Cups';
+  } else {
+    suit = 'Swords';
+  }
+
+  const desc = {
+    Wands:    '你身上有未熄的火，光比你想的更亮。',
+    Pentacles:'你脚下很稳，是那种能慢慢走远的人。',
+    Cups:     '你如水般流动，感知细腻，情绪先于言语。',
+    Swords:   '你的目光很利，一句话里已经想了三层。'
+  }[suit];
+
+  const reason = {
+    Wands:    '暖色为主，像有火在烧',
+    Pentacles:'色调沉稳，落地',
+    Cups:     '光偏柔冷，像水',
+    Swords:   '光影分明，轮廓清冷'
+  }[suit];
+
+  const card = TAROT_DB.find(c => c.en === `${courtType} of ${suit}`) || TAROT_DB[22];
+  _saveProfile(card.id, desc, gender, age);
+  _showReveal(card, desc, true);
+}
+
+// ===== 提取画面中心区域的颜色特征 =====
+function _extractColorFeatures(canvas) {
+  try {
+    if (!canvas || !canvas.width || !canvas.height) return null;
+    const N = 16;
+    const c = document.createElement('canvas');
+    c.width = N; c.height = N;
+    const ctx = c.getContext('2d');
+    // 取中心 60% 区域，避开背景干扰
+    ctx.drawImage(canvas,
+      canvas.width * 0.2, canvas.height * 0.2, canvas.width * 0.6, canvas.height * 0.6,
+      0, 0, N, N);
+    const d = ctx.getImageData(0, 0, N, N).data;
+    let r = 0, g = 0, b = 0;
+    const px = d.length / 4;
+    for (let i = 0; i < d.length; i += 4) { r += d[i]; g += d[i + 1]; b += d[i + 2]; }
+    r /= px; g /= px; b /= px;
+
+    const max = Math.max(r, g, b), min = Math.min(r, g, b);
+    const l = (max + min) / 255;
+    const s = max === min ? 0 : (max - min) / (max + min > 1 ? 255 - l : l);
+    let h = 0;
+    if (max !== min) {
+      const dd = max - min;
+      if (max === r) h = ((g - b) / dd + (g < b ? 6 : 0));
+      else if (max === g) h = (b - r) / dd + 2;
+      else h = (r - g) / dd + 4;
+      h *= 60;
+    }
+    return { r, g, b, hue: h, sat: s, light: l };
   } catch (e) {
-    console.warn('象征牌分析失败，使用推断', e);
-    _el.analyzing.classList.remove('on');
-    _el.selfieView.classList.remove('on');
-    _fallbackToInfer();
+    return null;
   }
 }
 
-// ===== 降级：用登录信息推断 =====
+// ===== 降级二：无照片时用登录信息推断 =====
 function _fallbackToInfer() {
   const { gender, age } = _inferFromUserInfo();
   const courtType = COURT_MAP[gender]?.[age] || 'King';
@@ -445,7 +509,7 @@ function _showReveal(card, desc, isNew) {
     ? '我看见你了。\n\n你的象征牌是——'
     : '欢迎回来。\n\n你上次的象征牌是——';
 
-  _el.cardImg.src   = `/tarot_assets/cards/${card.id}.jpg`;
+  _el.cardImg.src   = `${import.meta.env.BASE_URL}tarot_assets/cards/${card.id}.jpg`;
   _el.cardNameEn.textContent = card.en || '';
   _el.cardNameCn.textContent = card.cn || '';
   _el.cardDesc.textContent   = desc || '';

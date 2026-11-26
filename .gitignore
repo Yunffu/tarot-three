@@ -27,6 +27,9 @@ id_ed25519
 .dev.vars
 .wrangler/
 
+# 本地 Claude Code 配置
+.claude/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

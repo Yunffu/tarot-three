@@ -6,7 +6,7 @@
 
 **[https://yunffu.github.io/tarot-three/](https://yunffu.github.io/tarot-three/)**
 
-浏览器直接打开即可体验完整流程（无需安装、无需登录）。源码见 [本仓库](https://github.com/Yunffu/tarot-three)。
+浏览器直接打开即可体验完整流程，无需安装。开场有一段本地动效式的「入场仪式」（选牌 → 填昵称 → 燃烧转场），纯前端交互，未接后端账号系统。源码见 [本仓库](https://github.com/Yunffu/tarot-three)。
 
 ## 项目状态
 
@@ -77,6 +77,8 @@ npx wrangler deploy                          # 拿到 https://<name>.<subdomain>
 ```
 
 然后把 Worker 地址写进构建环境变量 `VITE_AI_BASE`，重新构建发布即可。
+
+线上站点当前使用的网关：`https://tarot-ai-worker.yunffu-tarot.workers.dev`（密钥在 Worker secret 里）。
 
 Worker 做了三件事：白名单来源校验（只允许本站和本地开发）、`max_tokens` 上限、
 密钥只存服务端。
